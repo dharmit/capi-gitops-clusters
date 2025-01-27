@@ -1,11 +1,10 @@
----
-# DockerCluster object referenced by the Cluster object
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerCluster
 metadata:
-  name: cluster1
   annotations:
-    "helm.sh/resource-policy": keep
+    helm.sh/resource-policy: keep
+  name: cluster1
+  namespace: default
 spec:
   loadBalancer:
     customHAProxyConfigTemplateRef:
@@ -15,6 +14,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: cluster1
+  namespace: default
 spec:
   clusterNetwork:
     pods:
@@ -37,23 +37,28 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: cluster1-control-plane
-  namespace: workloads
+  namespace: default
 spec:
   template:
     spec:
-      customImage: kindest/node:v1.30.0
       bootstrapTimeout: 15m
+      customImage: kindest/node:v1.30.0
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: RKE2ControlPlane
 metadata:
-  name: cluster1-control-plane
-  namespace: workloads
   annotations:
-    "helm.sh/resource-policy": keep
-spec: 
-  replicas: 1
+    helm.sh/resource-policy: keep
+  name: cluster1-control-plane
+  namespace: default
+spec:
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: DockerMachineTemplate
+    name: cluster1-control-plane
+  nodeDrainTimeout: 30s
   registrationMethod: internal-first
+  replicas: 1
   rolloutStrategy:
     rollingUpdate:
       maxSurge: 1
@@ -62,29 +67,24 @@ spec:
     disableComponents:
       kubernetesComponents:
       - cloudController
-  infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    kind: DockerMachineTemplate
-    name:  cluster1-control-plane
-  nodeDrainTimeout: 30s
   version: v1.30.0+rke2r1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: cluster1-md-0
-  namespace: workloads
+  namespace: default
 spec:
   template:
     spec:
-      customImage: kindest/node:v1.30.0
       bootstrapTimeout: 15m
+      customImage: kindest/node:v1.30.0
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: RKE2ConfigTemplate
 metadata:
   name: cluster1-md-0
-  namespace: workloads
+  namespace: default
 spec:
   template:
     spec: {}
@@ -92,10 +92,10 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
-  name: cluster1-md-0
-  namespace: workloads
   annotations:
-    "helm.sh/resource-policy": keep
+    helm.sh/resource-policy: keep
+  name: cluster1-md-0
+  namespace: default
 spec:
   clusterName: cluster1
   replicas: 1
@@ -178,4 +178,4 @@ data:
 kind: ConfigMap
 metadata:
   name: cluster1-lb-config
-  namespace: workloads
+  namespace: default
